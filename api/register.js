@@ -70,7 +70,7 @@ module.exports = async (req, res) => {
     
     // 3. 验证 introduction 是否以指定内容开头
     const expectedPrefix = `Amazing Luogu Verifying: ${luoguuid}`;
-    const userIntroduction = luoguData.introduction || '';
+    const userIntroduction = luoguData.user.introduction || '';
     
     if (!userIntroduction.startsWith(expectedPrefix)) {
       return res.status(403).json({
@@ -81,7 +81,7 @@ module.exports = async (req, res) => {
     }
 
     // 4. 提取洛谷用户信息（用于创建 Supabase 用户）
-    const luoguUserEmail = luoguData.email || `${luoguuid}@luogu-verified.com`; // 备用邮箱
+    const luoguUserEmail = luoguData.email || `${luoguuid}_${generateRandomPassword()}@luogu-verified.com`; // 备用邮箱
     const luoguUserName = luoguData.name || `luogu_user_${luoguuid}`;
 
     // 5. 生成随机密码（用户后续可自行重置）
