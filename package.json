@@ -1,5 +1,5 @@
 {
-  "name": "supabase-luogu-register",
+  "name": "supabase-register",
   "version": "1.0.0",
   "dependencies": {
     "@supabase/supabase-js": "^2.38.4",
