@@ -88,7 +88,7 @@ module.exports = async (req, res) => {
     const randomPassword = generateRandomPassword();
 
     // 6. 使用 Service Key 创建 Supabase 用户
-    const { data: supabaseData, error: supabaseError } = await supabase.admin.auth.createUser({
+    const { data: supabaseData, error: supabaseError } = await supabase.auth.admin.createUser({
       email: luoguUserEmail,
       password: randomPassword,
       email_confirm: true, // 自动确认邮箱
