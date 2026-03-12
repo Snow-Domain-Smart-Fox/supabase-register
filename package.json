@@ -1,0 +1,8 @@
+{
+  "name": "supabase-luogu-register",
+  "version": "1.0.0",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.4",
+    "node-fetch": "^2.7.0"
+  }
+}
