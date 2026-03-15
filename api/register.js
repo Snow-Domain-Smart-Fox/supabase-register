@@ -92,7 +92,12 @@ module.exports = async (req, res) => {
       email: luoguUserEmail,
       password: randomPassword,
       email_confirm: true, // 自动确认邮箱
-      send_email_confirm: false // 不发送确认邮件
+      send_email_confirm: false, // 不发送确认邮件
+      options: {
+          data: {
+              luogu_uid: luoguuid,
+          }
+      }
     });
 
     if (supabaseError) {
