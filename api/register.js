@@ -108,8 +108,8 @@ module.exports = async (req, res) => {
       message: '用户注册成功',
       userId: supabaseData.user.id,
       luoguInfo: {
-        uid: luoguData.uid,
-        name: luoguData.name,
+        uid: luoguData.user.uid,
+        name: luoguData.user.name,
         email: luoguUserEmail
       },
       // 注意：生产环境不要返回密码，这里仅用于测试
