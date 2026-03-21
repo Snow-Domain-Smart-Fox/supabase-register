@@ -95,7 +95,6 @@ module.exports = async (req, res) => {
   try {
     // 核心修复：手动解析请求体（不依赖任何外部中间件）
     const body = await parseRequestBody(req);
-    console.log('手动解析后的请求体:', body); // 现在能看到正确解析的对象
 
     // 读取参数
     const { email, password } = body;
