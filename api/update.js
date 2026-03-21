@@ -97,7 +97,7 @@ module.exports = async (req, res) => {
     const email = req.body["email"];
     const password = req.body["password"];
     if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
-      // console.log(req.body);
+      console.log(req.body,email,password);
       return res.status(400).json({
         success: false,
         message: '请求体中必须包含有效的 email 和 password'
