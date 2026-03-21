@@ -94,8 +94,8 @@ module.exports = async (req, res) => {
 
   try {
     // 1. 获取请求体中的邮箱、密码
-    const email = req.body["email"];
-    const password = req.body["password"];
+    const email = req.body.email;
+    const password = req.body.password;
     if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
       console.log(req.body,email,password);
       return res.status(400).json({
