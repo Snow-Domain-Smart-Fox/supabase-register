@@ -15,6 +15,31 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
 });
 
 /**
+ * 【保险版】手动解析 Express 请求体（不依赖任何外部中间件）
+ * @param {Request} req - Express 请求对象
+ * @returns {Promise<Object>} 解析后的 JSON 对象
+ */
+async function parseRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    // 监听请求体数据块
+    req.on('data', (chunk) => chunks.push(chunk));
+    // 数据接收完成后解析
+    req.on('end', () => {
+      try {
+        const bodyString = Buffer.concat(chunks).toString('utf8');
+        // 空请求体返回空对象，避免 JSON.parse 报错
+        resolve(bodyString ? JSON.parse(bodyString) : {});
+      } catch (err) {
+        reject(new Error(`请求体解析失败: ${err.message}，原始内容: ${Buffer.concat(chunks).toString('utf8')}`));
+      }
+    });
+    // 监听请求体读取错误
+    req.on('error', (err) => reject(new Error(`读取请求体失败: ${err.message}`)));
+  });
+}
+
+/**
  * 生成随机密码（用于 Supabase 用户创建）
  * @returns {string} 随机密码
  */
@@ -28,7 +53,7 @@ function generateRandomPassword() {
 }
 
 /**
- * 主处理函数
+ * 主处理函数（保险版）
  */
 module.exports = async (req, res) => {
   // 只允许 POST 请求
@@ -40,12 +65,16 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // 1. 获取请求体中的 luoguuid
-    const { luoguuid } = req.body;
+    // 【核心保险逻辑】手动解析请求体，不依赖环境中间件
+    const body = await parseRequestBody(req);
+
+    // 1. 获取请求体中的 luoguuid（从手动解析后的 body 中读取）
+    const { luoguuid } = body;
     if (!luoguuid || typeof luoguuid !== 'string') {
       return res.status(400).json({
         success: false,
-        message: '请求体中必须包含有效的 luoguuid'
+        message: '请求体中必须包含有效的 luoguuid',
+        received: { luoguuid } // 调试用：返回实际收到的值
       });
     }
 
