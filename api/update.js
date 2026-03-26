@@ -64,12 +64,12 @@ async function verifyUserCredentials(email, password) {
 /**
  * 更新用户最后在线时间
  */
-async function updateUserLastSeen(luoguUid, lastSeen) {
+async function updateUserLastSeen(luoguUid, lastSeen, format) {
   try {
     const { error: updateError } = await supabase
       .from('user_status')
       .upsert(
-        { uid: Number(luoguUid), last_seen: lastSeen },
+        { uid: Number(luoguUid), last_seen: lastSeen, format: format },
         { onConflict: 'uid', ignoreDuplicates: false }
       );
 
@@ -97,12 +97,12 @@ module.exports = async (req, res) => {
     const body = await parseRequestBody(req);
 
     // 读取参数
-    const { email, password } = body;
-    if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
+    const { email, password, format } = body;
+    if (!email || typeof email !== 'string' || !password || typeof password !== 'string' || !format || typeof format !== 'string') {
       return res.status(400).json({
         success: false,
-        message: '请求体中必须包含有效的 email 和 password',
-        received: { email, password } // 调试用：返回实际收到的值
+        message: '请求体中必须包含有效的 email,password,format',
+        received: { email, password, format } // 调试用：返回实际收到的值
       });
     }
 
@@ -111,13 +111,13 @@ module.exports = async (req, res) => {
     // 生成 UTC 时间
     const currentUTCTime = new Date().toISOString();
     // 更新在线时间
-    await updateUserLastSeen(luoguUid, currentUTCTime);
+    await updateUserLastSeen(luoguUid, currentUTCTime, format);
 
     // 返回成功响应
     return res.status(200).json({
       success: true,
       message: '最后在线时间更新成功',
-      data: { luogu_uid: luoguUid, last_seen: currentUTCTime }
+      data: { luogu_uid: luoguUid, last_seen: currentUTCTime, format: format }
     });
 
   } catch (error) {
