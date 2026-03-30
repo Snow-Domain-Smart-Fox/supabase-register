@@ -2,52 +2,52 @@
 const fetch = require('node-fetch');
 const { createClient } = require('@supabase/supabase-js');
 
-// Supabase 配置
+// Supabase 配置（只需要 SERVICE，全程用它）
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-// 初始化 Supabase 客户端
+// 初始化：仅用 SERVICE KEY，关闭所有 auth 持久化
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: {
     autoRefreshToken: false,
-    persistSession: false
+    persistSession: false,
+    detectSessionInUrl: false
   }
 });
 
 /**
- * 手动解析 Express 请求体（核心修复：确保100%能解析）
- * @param {Request} req - Express 请求对象
- * @returns {Promise<Object>} 解析后的 JSON 对象
+ * 手动解析 Express 请求体
  */
 async function parseRequestBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    // 监听数据块
     req.on('data', (chunk) => chunks.push(chunk));
-    // 监听结束
     req.on('end', () => {
       try {
         const bodyString = Buffer.concat(chunks).toString('utf8');
-        // 空请求体返回空对象
         resolve(bodyString ? JSON.parse(bodyString) : {});
       } catch (err) {
         reject(new Error(`请求体解析失败: ${err.message}`));
       }
     });
-    // 监听错误
     req.on('error', (err) => reject(err));
   });
 }
 
 /**
- * 验证邮箱密码并获取 luogu_uid
+ * 验证邮箱密码（用 SERVICE KEY 也能登录！）
+ * 关键：登录后立即清除会话，保持 SERVICE 最高权限
  */
 async function verifyUserCredentials(email, password) {
   try {
+    // 用 SERVICE KEY 登录
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
     });
+
+    // 登录完立即销毁会话 → 强制保持 SERVICE 权限
+    await supabase.auth.signOut();
 
     if (authError) throw new Error(`凭据验证失败: ${authError.message}`);
     if (!authData.user) throw new Error("未找到匹配的用户");
@@ -62,7 +62,7 @@ async function verifyUserCredentials(email, password) {
 }
 
 /**
- * 更新用户最后在线时间
+ * 更新用户最后在线时间（100% 跳过 RLS）
  */
 async function updateUserLastSeen(luoguUid, lastSeen, format) {
   try {
@@ -84,7 +84,6 @@ async function updateUserLastSeen(luoguUid, lastSeen, format) {
  * 主处理函数
  */
 module.exports = async (req, res) => {
-  // 只允许 POST 请求
   if (req.method !== 'POST') {
     return res.status(405).json({
       success: false,
@@ -93,38 +92,34 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // 核心修复：手动解析请求体（不依赖任何外部中间件）
     const body = await parseRequestBody(req);
-
-    // 读取参数
     const { email, password, format } = body;
-    if (!email || typeof email !== 'string' || !password || typeof password !== 'string' || !format || typeof format !== 'string') {
+
+    if (!email || !password || !format) {
       return res.status(400).json({
         success: false,
-        message: '请求体中必须包含有效的 email,password,format',
-        received: { email, password, format } // 调试用：返回实际收到的值
+        message: '必须包含 email, password, format'
       });
     }
 
-    // 验证凭据
+    // 1. 验证用户（SERVICE KEY 登录，立即登出保持权限）
     const luoguUid = await verifyUserCredentials(email, password);
-    // 生成 UTC 时间
+
+    // 2. 跳过 RLS 写入数据库
     const currentUTCTime = new Date().toISOString();
-    // 更新在线时间
     await updateUserLastSeen(luoguUid, currentUTCTime, format);
 
-    // 返回成功响应
     return res.status(200).json({
       success: true,
       message: '最后在线时间更新成功',
-      data: { luogu_uid: luoguUid, last_seen: currentUTCTime, format: format }
+      data: { luogu_uid: luoguUid, last_seen: currentUTCTime, format }
     });
 
   } catch (error) {
-    console.error('更新流程异常:', error);
+    console.error('错误：', error);
     return res.status(500).json({
       success: false,
-      message: `服务器内部错误: ${error.message}`
+      message: error.message
     });
   }
 };
