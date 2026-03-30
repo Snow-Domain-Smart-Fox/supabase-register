@@ -71,7 +71,8 @@ async function updateUserLastSeen(luoguUid, lastSeen, format) {
       .upsert(
         { uid: Number(luoguUid), last_seen: lastSeen, format: format },
         { onConflict: 'uid', ignoreDuplicates: false }
-      );
+      )
+      .options({ ignoreRLS: true });
 
     if (updateError) throw new Error(`更新失败: ${updateError.message}`);
     return true;
