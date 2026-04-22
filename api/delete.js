@@ -92,7 +92,7 @@ module.exports = async (req, res) => {
   try {
     const body = await parseRequestBody(req);
     const { email, password } = body;
-
+    console.log(body,email,password);
     if (!email || !password) {
       return res.status(400).json({
         success: false,
