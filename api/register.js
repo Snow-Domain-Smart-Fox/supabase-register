@@ -67,7 +67,7 @@ module.exports = async (req, res) => {
 
   try {
     const body = await parseRequestBody(req);
-    const { luoguuid, code, code_verifier } = body;
+    const { luoguuid, code, code_verifier, state } = body;
 
     if (!luoguuid || typeof luoguuid !== 'string') {
       return res.status(400).json({
@@ -80,6 +80,22 @@ module.exports = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: '缺少 CP OAuth 授权码或 code_verifier'
+      });
+    }
+
+    if (!state) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少 state 参数'
+      });
+    }
+
+    if (state !== luoguuid) {
+      return res.status(403).json({
+        success: false,
+        message: 'state 参数验证失败，可能存在 CSRF 攻击',
+        expectedState: luoguuid,
+        receivedState: state
       });
     }
 

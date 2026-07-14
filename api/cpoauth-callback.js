@@ -22,6 +22,16 @@ async function parseRequestBody(req) {
   });
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 module.exports = async (req, res) => {
   try {
     let code = req.query.code;
@@ -32,6 +42,9 @@ module.exports = async (req, res) => {
       code = body.code;
       error = body.error;
     }
+
+    const escapedCode = escapeHtml(code || '');
+    const escapedError = escapeHtml(error || '');
 
     const html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -51,7 +64,7 @@ module.exports = async (req, res) => {
     ${error ? 
       `<div class="icon">❌</div>
       <h1>授权失败</h1>
-      <p>${error}</p>` : 
+      <p>${escapedError}</p>` : 
       `<div class="icon">✅</div>
       <h1>授权成功</h1>
       <p>正在返回插件...</p>`}
@@ -61,8 +74,8 @@ module.exports = async (req, res) => {
       if (window.opener) {
         window.opener.postMessage({
           type: '${error ? "cpoauth_error" : "cpoauth_code"}',
-          code: '${code || ""}',
-          error: '${error || ""}'
+          code: '${escapedCode}',
+          error: '${escapedError}'
         }, '*');
       }
       setTimeout(() => window.close(), 1000);
