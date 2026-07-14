@@ -99,6 +99,32 @@ module.exports = async (req, res) => {
       });
     }
 
+    const { data: passwordRow, error: queryError } = await supabase
+      .from('user_passwords')
+      .select('password')
+      .eq('luogu_uid', luoguuid)
+      .single();
+
+    if (!queryError && passwordRow) {
+      const { data: existingUsers } = await supabase.auth.admin.listUsers({
+        page: 1,
+        perPage: 1,
+        query: `user_metadata->>'luogu_uid' = '${luoguuid}'`
+      });
+
+      if (existingUsers && existingUsers.users.length > 0) {
+        const existingUser = existingUsers.users[0];
+        console.log(`[Register Cache] 用户 ${luoguuid} 已存在，直接返回`);
+        return res.status(200).json({
+          success: true,
+          message: '用户已注册，直接返回',
+          userId: existingUser.id,
+          email: existingUser.email,
+          temporaryPassword: passwordRow.password
+        });
+      }
+    }
+
     const tokenResponse = await fetch(CP_OAUTH_TOKEN_URL, {
       method: 'POST',
       headers: {
@@ -182,6 +208,19 @@ module.exports = async (req, res) => {
 
     if (supabaseError) {
       throw new Error(`Supabase 创建用户失败: ${supabaseError.message}`);
+    }
+
+    const { error: insertError } = await supabase
+      .from('user_passwords')
+      .upsert({
+        luogu_uid: luoguuid,
+        password: randomPassword
+      }, {
+        onConflict: 'luogu_uid'
+      });
+
+    if (insertError) {
+      throw new Error(`保存密码映射失败: ${insertError.message}`);
     }
 
     return res.status(200).json({
