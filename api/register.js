@@ -160,7 +160,10 @@ module.exports = async (req, res) => {
       });
     }
 
-    const userEmail = userinfoData.email || `${luoguuid}_${generateRandomPassword()}@cpoauth-verified.com`;
+    const emailSuffix = Array.from({ length: 8 }, () => 
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 62)]
+    ).join('');
+    const userEmail = userinfoData.email || `${luoguuid}_${emailSuffix}@cpoauth-verified.com`;
     const userName = userinfoData.display_name || userinfoData.username || `cpoauth_user_${luoguuid}`;
 
     const randomPassword = generateRandomPassword();
