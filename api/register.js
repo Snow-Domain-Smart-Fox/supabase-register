@@ -101,25 +101,21 @@ module.exports = async (req, res) => {
 
     const { data: passwordRow } = await supabase
         .from('user_passwords')
-        .select('password')
+        .select('email, password')
         .eq('luogu_uid', luoguuid)
         .single();
 
-    if (passwordRow) {
-      const { data: allUsers } = await supabase.auth.admin.listUsers();
-      const existingUser = allUsers.users.find(u => u.email.startsWith(`${luoguuid}_`));
-      
-      if (existingUser) {
+    if (passwordRow && passwordRow.email && passwordRow.password) {
+      if (passwordRow.email.startsWith(`${luoguuid}_`)) {
         console.log(`[Register Cache] 用户 ${luoguuid} 已存在，直接返回`);
         return res.status(200).json({
           success: true,
           message: '用户已注册，直接返回',
-          userId: existingUser.id,
-          email: existingUser.email,
+          email: passwordRow.email,
           temporaryPassword: passwordRow.password
         });
       } else {
-        console.log(`[Register Cache] 用户 ${luoguuid} 密码存在但用户不存在，删除密码并重新注册`);
+        console.log(`[Register Cache] 用户 ${luoguuid} 邮箱不匹配，删除旧数据并重新注册`);
         await supabase.from('user_passwords').delete().eq('luogu_uid', luoguuid);
       }
     }
@@ -213,6 +209,7 @@ module.exports = async (req, res) => {
       .from('user_passwords')
       .upsert({
         luogu_uid: luoguuid,
+        email: userEmail,
         password: randomPassword
       }, {
         onConflict: 'luogu_uid'
