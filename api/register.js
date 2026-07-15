@@ -99,35 +99,28 @@ module.exports = async (req, res) => {
       });
     }
 
-    const { data: existingUsers } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-      query: `user_metadata->>'luogu_uid' = '${luoguuid}'`
-    });
-    console.log(existingUsers);
-    if (existingUsers && existingUsers.users.length > 0) {
-      const existingUser = existingUsers.users[0];
-      const { data: passwordRow } = await supabase
+    const { data: passwordRow } = await supabase
         .from('user_passwords')
         .select('password')
         .eq('luogu_uid', luoguuid)
         .single();
 
-      if (passwordRow) {
-        if (existingUser.email.startsWith(`${luoguuid}_`)) {
-          console.log(`[Register Cache] 用户 ${luoguuid} 已存在，直接返回`);
-          return res.status(200).json({
-            success: true,
-            message: '用户已注册，直接返回',
-            userId: existingUser.id,
-            email: existingUser.email,
-            temporaryPassword: passwordRow.password
-          });
-        } else {
-          console.log(`[Register Cache] 用户 ${luoguuid} 邮箱不匹配，删除旧用户并重新注册`);
-          await supabase.auth.admin.deleteUser(existingUser.id);
-          await supabase.from('user_passwords').delete().eq('luogu_uid', luoguuid);
-        }
+    if (passwordRow) {
+      const { data: allUsers } = await supabase.auth.admin.listUsers();
+      const existingUser = allUsers.users.find(u => u.email.startsWith(`${luoguuid}_`));
+      
+      if (existingUser) {
+        console.log(`[Register Cache] 用户 ${luoguuid} 已存在，直接返回`);
+        return res.status(200).json({
+          success: true,
+          message: '用户已注册，直接返回',
+          userId: existingUser.id,
+          email: existingUser.email,
+          temporaryPassword: passwordRow.password
+        });
+      } else {
+        console.log(`[Register Cache] 用户 ${luoguuid} 密码存在但用户不存在，删除密码并重新注册`);
+        await supabase.from('user_passwords').delete().eq('luogu_uid', luoguuid);
       }
     }
 
