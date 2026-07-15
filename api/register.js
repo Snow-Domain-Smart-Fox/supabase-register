@@ -99,21 +99,21 @@ module.exports = async (req, res) => {
       });
     }
 
-    const { data: passwordRow, error: queryError } = await supabase
-      .from('user_passwords')
-      .select('password')
-      .eq('luogu_uid', luoguuid)
-      .single();
+    const { data: existingUsers } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+      query: `user_metadata->>'luogu_uid' = '${luoguuid}'`
+    });
 
-    if (!queryError && passwordRow) {
-      const { data: existingUsers } = await supabase.auth.admin.listUsers({
-        page: 1,
-        perPage: 1,
-        query: `user_metadata->>'luogu_uid' = '${luoguuid}'`
-      });
+    if (existingUsers && existingUsers.users.length > 0) {
+      const existingUser = existingUsers.users[0];
+      const { data: passwordRow } = await supabase
+        .from('user_passwords')
+        .select('password')
+        .eq('luogu_uid', luoguuid)
+        .single();
 
-      if (existingUsers && existingUsers.users.length > 0) {
-        const existingUser = existingUsers.users[0];
+      if (passwordRow) {
         console.log(`[Register Cache] 用户 ${luoguuid} 已存在，直接返回`);
         return res.status(200).json({
           success: true,
