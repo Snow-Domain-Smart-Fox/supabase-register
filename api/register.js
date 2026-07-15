@@ -114,14 +114,20 @@ module.exports = async (req, res) => {
         .single();
 
       if (passwordRow) {
-        console.log(`[Register Cache] 用户 ${luoguuid} 已存在，直接返回`);
-        return res.status(200).json({
-          success: true,
-          message: '用户已注册，直接返回',
-          userId: existingUser.id,
-          email: existingUser.email,
-          temporaryPassword: passwordRow.password
-        });
+        if (existingUser.email.startsWith(`${luoguuid}_`)) {
+          console.log(`[Register Cache] 用户 ${luoguuid} 已存在，直接返回`);
+          return res.status(200).json({
+            success: true,
+            message: '用户已注册，直接返回',
+            userId: existingUser.id,
+            email: existingUser.email,
+            temporaryPassword: passwordRow.password
+          });
+        } else {
+          console.log(`[Register Cache] 用户 ${luoguuid} 邮箱不匹配，删除旧用户并重新注册`);
+          await supabase.auth.admin.deleteUser(existingUser.id);
+          await supabase.from('user_passwords').delete().eq('luogu_uid', luoguuid);
+        }
       }
     }
 
@@ -189,7 +195,7 @@ module.exports = async (req, res) => {
     const emailSuffix = Array.from({ length: 8 }, () => 
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 62)]
     ).join('');
-    const userEmail = userinfoData.email || `${luoguuid}_${emailSuffix}@cpoauth-verified.com`;
+    const userEmail = `${luoguuid}_${emailSuffix}@cpoauth-verified.com`;
     const userName = userinfoData.display_name || userinfoData.username || `cpoauth_user_${luoguuid}`;
 
     const randomPassword = generateRandomPassword();
