@@ -104,7 +104,7 @@ module.exports = async (req, res) => {
       perPage: 1,
       query: `user_metadata->>'luogu_uid' = '${luoguuid}'`
     });
-
+    console.log(existingUsers);
     if (existingUsers && existingUsers.users.length > 0) {
       const existingUser = existingUsers.users[0];
       const { data: passwordRow } = await supabase
