@@ -67,13 +67,19 @@ module.exports = async (req, res) => {
 
   try {
     const body = await parseRequestBody(req);
-    const { luoguuid, code, code_verifier, state } = body;
+    const { luoguuid: rawLuoguuid, code, code_verifier, state: rawState } = body;
 
-    if (!luoguuid || typeof luoguuid !== 'string') {
+    let luoguuid = rawLuoguuid;
+    let state = rawState;
+
+    if (!luoguuid) {
       return res.status(400).json({
         success: false,
         message: '请求体中必须包含有效的 luoguuid'
       });
+    }
+    if (typeof luoguuid !== 'string') {
+      luoguuid = String(luoguuid);
     }
 
     if (!code || !code_verifier) {
@@ -88,6 +94,9 @@ module.exports = async (req, res) => {
         success: false,
         message: '缺少 state 参数'
       });
+    }
+    if (typeof state !== 'string') {
+      state = String(state);
     }
 
     if (state !== luoguuid) {
