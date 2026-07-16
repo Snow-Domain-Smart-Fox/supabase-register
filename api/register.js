@@ -99,27 +99,6 @@ module.exports = async (req, res) => {
       });
     }
 
-    const { data: passwordRow } = await supabase
-        .from('user_passwords')
-        .select('email, password')
-        .eq('luogu_uid', luoguuid)
-        .single();
-
-    if (passwordRow && passwordRow.email && passwordRow.password) {
-      if (passwordRow.email.startsWith(`${luoguuid}_`)) {
-        console.log(`[Register Cache] 用户 ${luoguuid} 已存在，直接返回`);
-        return res.status(200).json({
-          success: true,
-          message: '用户已注册，直接返回',
-          email: passwordRow.email,
-          temporaryPassword: passwordRow.password
-        });
-      } else {
-        console.log(`[Register Cache] 用户 ${luoguuid} 邮箱不匹配，删除旧数据并重新注册`);
-        await supabase.from('user_passwords').delete().eq('luogu_uid', luoguuid);
-      }
-    }
-
     const tokenResponse = await fetch(CP_OAUTH_TOKEN_URL, {
       method: 'POST',
       headers: {
@@ -179,6 +158,27 @@ module.exports = async (req, res) => {
         actualUid: luoguAccount.platformUid,
         requestedUid: luoguuid
       });
+    }
+
+    const { data: passwordRow } = await supabase
+        .from('user_passwords')
+        .select('email, password')
+        .eq('luogu_uid', luoguuid)
+        .single();
+
+    if (passwordRow && passwordRow.email && passwordRow.password) {
+      if (passwordRow.email.startsWith(`${luoguuid}_`)) {
+        console.log(`[Register Cache] 用户 ${luoguuid} 已存在，直接返回`);
+        return res.status(200).json({
+          success: true,
+          message: '用户已注册，直接返回',
+          email: passwordRow.email,
+          temporaryPassword: passwordRow.password
+        });
+      } else {
+        console.log(`[Register Cache] 用户 ${luoguuid} 邮箱不匹配，删除旧数据并重新注册`);
+        await supabase.from('user_passwords').delete().eq('luogu_uid', luoguuid);
+      }
     }
 
     const emailSuffix = Array.from({ length: 8 }, () => 
