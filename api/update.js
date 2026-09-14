@@ -49,7 +49,7 @@ async function verifyUserCredentials(email, password) {
     // 登录完立即销毁会话 → 强制保持 SERVICE 权限
     await supabase.auth.signOut();
 
-    if (authError) throw new Error(`凭据验证失败: ${authError.message}`);
+    if (authError) throw new Error(`Supabase Error`);
     if (!authData.user) throw new Error("未找到匹配的用户");
 
     const luoguUid = authData.user.user_metadata?.luogu_uid;
@@ -117,6 +117,11 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     console.error('错误：', error);
+    if (error.message==`Supabase Error`){
+      return res.status(202).json({
+        success: false,
+      });
+    }
     return res.status(500).json({
       success: false,
       message: error.message
